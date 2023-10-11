@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Artworks Heatmap</title>
+    <script src="https://cdn.jsdelivr.net/npm/ol@v8.1.0/dist/ol.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v8.1.0/ol.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+    <div id="navbar"></div>
+    <div class="container-flex">
+        <div class="row">
+            <div class="col-md-12">
+                <div id="map" style="width: 100%; height: 100vh;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // load-navbar.js
+        $(function () {
+            $("#navbar").load("navbar.html");
+        });
+
+        // Load the data JSON file
+        $.getJSON('../data_with_coordinates_and_artists_images.json').done(function (data) {
+            var cityCounts = {};
+
+            // Count the number of artworks per city
+            data.forEach(function (artist) {
+                artist.cities.forEach(function (city) {
+                    var cityName = city.city_name;
+                    cityCounts[cityName] = (cityCounts[cityName] || 0) + city.city_holders.length;
+                    console.log(cityCounts[cityName])
+                });
+            });
+
+            var features = [];
+            data.forEach(function (artist) {
+                artist.cities.forEach(function (city) {
+                    var cityName = city.city_name;
+                    var count = cityCounts[cityName];
+                    if (count && (city.coordinates)) {
+                        var feature = new ol.Feature(new ol.geom.Point(ol.proj.fromLonLat([parseFloat(city.coordinates.longitude), parseFloat(city.coordinates.latitude)])));
+                        feature.set('weight', count);
+                        features.push(feature);
+                    }
+                });
+            });
+
+            var vectorSource = new ol.source.Vector({
+                features: features
+            });
+
+            var heatLayer = new ol.layer.Heatmap({
+                source: vectorSource,
+                radius: 4,
+                blur: 20,
+                maxZoom: 30,
+                weight: function (feature) {
+                    let min_value = 1;
+                    let max_value = 320;
+                    let calculated_weight = (Math.log(feature.get('weight')) - Math.log(min_value)) / (Math.log(max_value) - Math.log(min_value));
+                    return calculated_weight;
+                }
+            });
+
+            var map = new ol.Map({
+                target: 'map',
+                layers: [
+                    new ol.layer.Tile({
+                        source: new ol.source.OSM()
+                    }),
+                    heatLayer  // Add the heat layer here
+                ],
+                view: new ol.View({
+                    center: ol.proj.fromLonLat([0, 20]),
+                    zoom: 2
+                })
+            });
+        });
+    </script>
+</body>
+
+</html>

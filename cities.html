@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Artworks Bar Chart</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.4/dist/Chart.min.js"></script>
+</head>
+
+<body>
+
+    <canvas id="artworksChart"></canvas>
+</body>
+<script>
+fetch('jsons/data.json')
+    .then(response => response.json())
+    .then(data => {
+        const cityArtworkCounts = {};
+
+        data.forEach(artist => {
+            artist.cities.forEach(city => {
+                const cityName = city.city_name;
+                const artworkCount = city.city_holders.length;
+                cityArtworkCounts[cityName] = (cityArtworkCounts[cityName] || 0) + artworkCount;
+            });
+        });
+
+        const sortedCities = Object.entries(cityArtworkCounts)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 30);
+
+        const cityLabels = sortedCities.map(entry => entry[0]);
+        const artworkCounts = sortedCities.map(entry => entry[1]);
+
+        const ctx = document.getElementById('artworksChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'horizontalBar',
+            data: {
+                labels: cityLabels,
+                datasets: [{
+                    label: '# of Artworks',
+                    data: artworkCounts,
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                scales: {
+                    xAxes: [{
+                        ticks: {
+                            beginAtZero: true
+                        }
+                    }]
+                }
+            }
+        });
+    });
+
+</script>
+</html>

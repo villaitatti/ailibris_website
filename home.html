@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>Artists Page</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Include Bootstrap CSS -->
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <!-- Include jQuery library -->
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    td, th {
+      vertical-align: middle !important;
+    }
+    .artist-image {
+      width: 150px; /* Or whatever fixed width you prefer */
+      height: 150px; /* Maintains aspect ratio */
+      object-fit: cover;
+      display:block;
+      border-radius:150px;
+    }
+  </style>
+</head>
+<body>
+<div id="navbar"></div>
+
+  <div class="container mt-5">
+    <h1>Artists list</h1>
+    <table id="artistsTable" class="table table-striped" style="margin-top:30px;">
+      <thead>
+        <tr>
+          <th scope="col"></th>
+          <th scope="col">Appellation</th>
+          <th scope="col">Biography</th>
+          <th scope="col">Cross-reference</th>
+          <th scope="col">Source</th>
+          <th scope="col">Model</th>
+        </tr>
+      </thead>
+      <tbody>
+      </tbody>
+    </table>
+  </div>
+  <script>
+          // load-navbar.js
+    $(function(){
+        $("#navbar").load("navbar.html");
+    });
+    function toTitleCase(str) {
+    return str.split(' ').map(function(word) {
+        return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+    }).join(' ');
+}
+
+    $(document).ready(function(){
+      $.getJSON("./jsons/data_with_coordinates_and_artists_images.json", function(data){
+        $.each(data, function(key, value){
+          var imgSrc = value.imageurl ? "<a href='artist.html?appellation="+ encodeURIComponent(value.appellation) +"'><img src='"+value.imageurl+"' class='artist-image'></a>" : "<a href='/artist.html?appellation="+ encodeURIComponent(value.appellation) +"'><img src='https://via.placeholder.com/150' class='artist-image'></a>";
+          var appellation = value.appellation ? "<a href='artist.html?appellation="+ encodeURIComponent(value.appellation) +"'>"+toTitleCase(value.appellation)+"</a>" : '';
+          var bio = value.bio ? value.bio : '';
+          var crossref = value.crossref ? value.crossref : '';
+          var source = toTitleCase(value.source.title + " school, " + value.source.year + ".");
+          var model = value.source.model;
+          $("#artistsTable > tbody:last-child").append("<tr><td>"+imgSrc+"</td><td>"+appellation+"</td><td>"+bio+"</td><td>"+crossref+"</td><td>"+source+"</td><td>"+model+"</td></tr>");
+        });
+      });
+    });
+    </script>
+    
+  <!-- Include Bootstrap JS and Popper.js -->
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>
