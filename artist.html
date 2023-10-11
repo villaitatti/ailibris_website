@@ -129,197 +129,222 @@
     </div>
   </div>
 
-  <script>
-      // load-navbar.js
+<script>
+    // load-navbar.js
     $(function(){
         $("#navbar").load("navbar.html");
     });
+
     function toTitleCase(str) {
-      return str.split(' ').map(function (word) {
-        return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
-      }).join(' ');
+        return str.split(' ').map(function (word) {
+            return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+        }).join(' ');
     }
-    var cities_list = [];  // replace with your cities
+
     var cities_map_list = []
 
     $(document).ready(function () {
-      var artistAppellation = new URLSearchParams(window.location.search).get('appellation');
-      $.getJSON("./jsons/data_with_coordinates_and_artists_images.json", function (data) {
-        $.each(data, function (key, value) {
-          if (value.appellation === artistAppellation) {
-            number_of_artworks = 0
-            number_of_cities = 0
-            $("#artistAppellation").text(toTitleCase(value.appellation));
-            $("#source").text(toTitleCase(value.source.title + " school, " + value.source.year + " (extracted using " + value.source.model + ")." ));
+        var artistAppellation = new URLSearchParams(window.location.search).get('appellation');
+        $.getJSON("./jsons/data_with_coordinates_and_artists_images.json", function (data) {
+            $.each(data, function (key, value) {
+                if (value.appellation === artistAppellation) {
+                    var number_of_artworks = 0;
+                    var number_of_cities = 0;
+                    $("#artistAppellation").text(toTitleCase(value.appellation));
+                    $("#source").text(toTitleCase(value.source.title + " school, " + value.source.year + " (extracted using " + value.source.model + ")." ));
+                    $("#artistImage").attr('src', value.imageurl ? value.imageurl : 'https://via.placeholder.com/150');
+                    $("#artist-bio").text(value.bio ? value.bio : '');
 
-            console.log(value.imageurl)
-            $("#artistImage").attr('src', value.imageurl ? value.imageurl : 'https://via.placeholder.com/150');
-            $("#artist-bio").text(value.bio ? value.bio : '');
+                    var accordionContent = '';
+                    if (value.cities) {
+                        $.each(value.cities, function (index, city) {
+                            let longitude = city.coordinates ? city.coordinates.longitude : ""
+                            let latitude = city.coordinates ? city.coordinates.latitude : ""
+                            cities_map_list.push({
+                                name: city.city_name,
+                                coordinates: [longitude, latitude]
+                            });
+                            let toponimic = city.city_name + " " + city.city_spec;
+                            number_of_cities++;
 
-            var accordionContent = '';
-            if (value.cities) {
-              $.each(value.cities, function (index, city) {
-                let toponimic = city.city_name + " " + city.city_spec;
-                cities_list.push(toponimic);
-                cities_map_list.push(city.city_name);
-                number_of_cities++;
+                            accordionContent += '<div class="card">';
+                            accordionContent += '<div class="card-header" id="heading' + index + '">';
+                            accordionContent += '<h2 class="mb-0">';
+                            accordionContent += '<button class="btn btn-link" type="button" data-toggle="collapse" data-target="#collapse' + index + '" aria-expanded="true" aria-controls="collapse' + index + '">';
+                            accordionContent += city.city_name + ' ' + (city.city_spec ? city.city_spec : "");
+                            accordionContent += '</button>';
+                            accordionContent += '</h2>';
+                            accordionContent += '</div>';
+                            accordionContent += '<div id="collapse' + index + '" class="collapse" aria-labelledby="heading' + index + '" data-parent="#accordion">';
+                            accordionContent += '<div class="card-body">';
+                            var previous_title = "";
+                            $.each(city.city_holders, function (i, holder) {
+                                if (!(previous_title === holder.title)) {
+                                    number_of_artworks++;
+                                    holder["city"] = city.city_name;
+                                    accordionContent += '<h4>' + toTitleCase(holder.holder) + '</h4>';
+                                    accordionContent += '<div class="artwork_accordion" data-artwork="' + encodeURIComponent(JSON.stringify(holder)) + '">' + holder.title + '</div>';
+                                    accordionContent += '<hr>';
+                                    previous_title = holder.title;
 
-                accordionContent += '<div class="card">';
-                accordionContent += '<div class="card-header" id="heading' + index + '">';
-                accordionContent += '<h2 class="mb-0">';
-                accordionContent += '<button class="btn btn-link" type="button" data-toggle="collapse" data-target="#collapse' + index + '" aria-expanded="true" aria-controls="collapse' + index + '">';
-                accordionContent += city.city_name + ' ' + (city.city_spec ? city.city_spec : "");
-                accordionContent += '</button>';
-                accordionContent += '</h2>';
-                accordionContent += '</div>';
-                accordionContent += '<div id="collapse' + index + '" class="collapse" aria-labelledby="heading' + index + '" data-parent="#accordion">';
-                accordionContent += '<div class="card-body">';
-                previous_title = ""
-                $.each(city.city_holders, function (i, holder) {
-                  if (!(previous_title === holder.title)) {
-                    number_of_artworks++;
-                    holder["city"] = city.city_name;
-                    accordionContent += '<h4>' + toTitleCase(holder.holder) + '</h4>';
-                    accordionContent += '<div class="artwork_accordion" data-artwork="' + encodeURIComponent(JSON.stringify(holder)) + '">' + holder.title + '</div>';
-                    accordionContent += '<hr>'
-                    previous_title = holder.title;
-
-
-                    $("#artworksTable tbody").append(
-                    '<tr>' +
-                      '<td><img src="' + holder.imageurl + '" width="80px" height="80px" style="object-fit: cover; border-radius:40px;"></td>' +
-                      '<td>' + holder.title + '</td>' +
-                      '<td>' + city.city_name + '</td>' +
-                      '<td>' + toTitleCase(holder.holder) + '</td>' +
-                      '<td>' + (holder.parent_holder ? holder.parent_holder : '-') + '</td>' +
-                      '<td>' + (holder.year ? holder.year : '-') + '</td>' +
-                      '<td>' + (holder.support ? holder.support : '-') + '</td>' +
-                      '<td>' + (holder.inventory_number ? holder.inventory_number : '-') + '</td>' +
-                      '<td>' + (holder.plate ? holder.plate : '-') + '</td>' +
-                      '<td>' + (holder.doubt == true? '<i class="fa fa-question-circle" aria-hidden="true"></i>':'<i class="fa fa-exclamation-circle" aria-hidden="true"></i>') + '</td>' +
-                    '</tr>'
-                  );
-                  }
-                });
-                accordionContent += '</div>';
-                accordionContent += '</div>';
-                accordionContent += '</div>';
-              });
-              $("#accordion").html(accordionContent);
-
-            }
-            $("#count").text(number_of_artworks + ", in " + number_of_cities + " cities.");
-
-                    // Load the JSON files
-          }
-        });
-        $('.artwork_accordion').click(function () {
-          var artwork_object = JSON.parse(decodeURIComponent($(this).attr('data-artwork')));
-          console.log(artwork_object)
-          $('#artworkImage').attr('src', artwork_object.imageurl);
-          $('#artworkTitle').html(artwork_object.title);
-          $('#artworkHolder').html("<label>Holder: </label><span class='modalHolder'>" + artwork_object.holder + "</span> in " + artwork_object.city);
-          if (artwork_object.parent_holder) {
-            $('#artworkParentHolder').html("<label>Part of: </label>" + artwork_object.parent_holder);
-          }
-          if (artwork_object.inventory_number) {
-            $('#artworkInventoryNumber').html("<label>Inventory Number: </label>" + artwork_object.inventory_number);
-          }
-          if (artwork_object.support) {
-            $('#artworkSupport').html("<label>Support: </label>" + artwork_object.support);
-          }
-          if (artwork_object.plate) {
-            $('#artworkPlate').html("<label>Plate: </label>" + artwork_object.plate);
-          }
-          $('#artworkModal').modal('show');
-        });
-      });
-      initMap(cities_map_list);
-    });
-async function initMap(cities_map_list) {
-
-    Promise.all([
-        fetch('jsons/cities.json').then(response => response.json()),
-        fetch('jsons/data_with_coordinates_and_artists_images.json').then(response => response.json())
-    ]).then(([citiesData, artworksData]) => {
-        const cityCoordinates = {};
-        citiesData.forEach(city => {
-            cityCoordinates[city.name] = ol.proj.fromLonLat([parseFloat(city.lng), parseFloat(city.lat)]);  // OpenLayers expects coordinates in LonLat.
-        });
-        // Create an OpenLayers Map.
-        const map = new ol.Map({
-            target: 'map',
-            layers: [
-                new ol.layer.Tile({
-                    source: new ol.source.OSM()
-                })
-            ],
-            view: new ol.View({
-                center: ol.proj.fromLonLat([0,0]),  // Center of the map (0,0)
-                zoom: 2
-            })
-        });
-
-        // Create a vector source to hold the markers.
-        const vectorSource = new ol.source.Vector();
-        console.log(cities_map_list)
-        cities_map_list.forEach(cityData => {
-            const cityName = cityData;
-            const coords = cityCoordinates[cityName];
-            console.log(coords)
-            if (coords) {
-                console.log(cityName + str(coords))
-                // Create a marker for each city.
-                const marker = new ol.Feature({
-                    geometry: new ol.geom.Point(coords),
-                    name: cityName  // Store the city name as a property for use in the popup.
-                });
-
-                // Set a style for the marker.
-                marker.setStyle(
-                    new ol.style.Style({
-                        image: new ol.style.Icon({
-                            src: 'https://openlayers.org/en/latest/examples/data/icon.png',  // Use any icon image URL here.
-                            imgSize: [32, 32]  // Set the image size if known.
-                        })
-                    })
-                );
-
-                // Add the marker to the vector source.
-                vectorSource.addFeature(marker);
-            } else {
-                console.error('City not found in cities.json:', cityName);
-            }
-        });
-
-        // Create a vector layer for the markers and add it to the map.
-        const vectorLayer = new ol.layer.Vector({
-            source: vectorSource
-        });
-        map.addLayer(vectorLayer);
-
-        // Add a click handler to show a popup on click.
-        map.on('singleclick', function(event) {
-            map.forEachFeatureAtPixel(event.pixel, function(feature) {
-                const cityName = feature.get('name');
-                alert("WE")
+                                    $("#artworksTable tbody").append(
+                                        '<tr>' +
+                                        '<td><img src="' + holder.imageurl + '" width="80px" height="80px" style="object-fit: cover; border-radius:40px;"></td>' +
+                                        '<td>' + holder.title + '</td>' +
+                                        '<td>' + city.city_name + '</td>' +
+                                        '<td>' + toTitleCase(holder.holder) + '</td>' +
+                                        '<td>' + (holder.parent_holder ? holder.parent_holder : '-') + '</td>' +
+                                        '<td>' + (holder.year ? holder.year : '-') + '</td>' +
+                                        '<td>' + (holder.support ? holder.support : '-') + '</td>' +
+                                        '<td>' + (holder.inventory_number ? holder.inventory_number : '-') + '</td>' +
+                                        '<td>' + (holder.plate ? holder.plate : '-') + '</td>' +
+                                        '<td>' + (holder.doubt == true? '<i class="fa fa-question-circle" aria-hidden="true"></i>':'<i class="fa fa-exclamation-circle" aria-hidden="true"></i>') + '</td>' +
+                                        '</tr>'
+                                    );
+                                }
+                            });
+                            accordionContent += '</div>';
+                            accordionContent += '</div>';
+                            accordionContent += '</div>';
+                        });
+                        $("#accordion").html(accordionContent);
+                    }
+                    $("#count").text(number_of_artworks + ", in " + number_of_cities + " cities.");
+                }
             });
+            initMap(cities_map_list);
         });
 
-    }).catch(error => {
-        console.error('Error loading JSON files:', error);
+        $('.artwork_accordion').click(function () {
+            var artwork_object = JSON.parse(decodeURIComponent($(this).attr('data-artwork')));
+            $('#artworkImage').attr('src', artwork_object.imageurl);
+            $('#artworkTitle').html(artwork_object.title);
+            $('#artworkHolder').html("<label>Holder: </label><span class='modalHolder'>" + artwork_object.holder + "</span> in " + artwork_object.city);
+            if (artwork_object.parent_holder) {
+                $('#artworkParentHolder').html("<label>Part of: </label>" + artwork_object.parent_holder);
+            }
+            if (artwork_object.inventory_number) {
+                $('#artworkInventoryNumber').html("<label>Inventory Number: </label>" + artwork_object.inventory_number);
+            }
+            if (artwork_object.support) {
+                $('#artworkSupport').html("<label>Support: </label>" + artwork_object.support);
+            }
+            if (artwork_object.plate) {
+                $('#artworkPlate').html("<label>Plate: </label>" + artwork_object.plate);
+            }
+            $('#artworkModal').modal('show');
+        });
+    });
+
+   function initMap(cities_map_list) {
+    // Create an OpenLayers Map.
+    const map = new ol.Map({
+        target: 'map',
+        layers: [
+            new ol.layer.Tile({
+                source: new ol.source.OSM()
+            })
+        ],
+        view: new ol.View({
+            center: ol.proj.fromLonLat([0, 0]),
+            zoom: 2
+        })
+    });
+
+    // Create a vector source to hold the markers.
+    const vectorSource = new ol.source.Vector();
+
+    cities_map_list.forEach(cityData => {
+        const cityName = cityData.name;
+        const coords = ol.proj.fromLonLat(cityData.coordinates);
+
+        // Create a marker for each city.
+        const marker = new ol.Feature({
+            geometry: new ol.geom.Point(coords),
+            name: cityName
+        });
+
+        // Set a style for the marker.
+        marker.setStyle(
+            new ol.style.Style({
+                image: new ol.style.Circle({
+                    radius: 7,
+                    fill: new ol.style.Fill({
+                        color: '#007AFF'
+                    }),
+                    stroke: new ol.style.Stroke({
+                        color: '#fff',
+                        width: 2
+                    })
+                })
+            })
+        );
+
+        // Add the marker to the vector source.
+        vectorSource.addFeature(marker);
+    });
+
+    // Create a vector layer for the markers and add it to the map.
+    const vectorLayer = new ol.layer.Vector({
+        source: vectorSource
+    });
+    map.addLayer(vectorLayer);
+
+    // Create a popup overlay.
+    const popup = new ol.Overlay({
+        element: document.getElementById('popup'),
+        positioning: 'bottom-center',
+        stopEvent: true,
+        offset: [0, -10]
+    });
+    map.addOverlay(popup);
+
+    // Add a click handler to show a popup on click.
+    map.on('singleclick', function(event) {
+        let featureFound = false;
+        map.forEachFeatureAtPixel(event.pixel, function(feature) {
+            const cityName = feature.get('name');
+            popup.setPosition(event.coordinate);
+            document.getElementById('popup-content').innerHTML = cityName;
+            featureFound = true;
+        });
+        if (!featureFound) {
+            popup.setPosition(undefined);
+        }
+    });
+        // Add a pointermove handler to change cursor style.
+    map.on('pointermove', function(event) {
+        if (map.hasFeatureAtPixel(event.pixel)) {
+            map.getTargetElement().style.cursor = 'pointer';
+        } else {
+            map.getTargetElement().style.cursor = '';
+        }
     });
 }
-  </script>
+
+</script>
+
 
   <!-- Include Bootstrap JS and Popper.js -->
   <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+<div id="popup" class="ol-popup">
+    <div id="popup-content"></div>
+</div>
 </body>
 <style>
   #map {
     width: 100%;
     height: 100%;
     position: absolute; /* or relative */
+}
+  .ol-popup {
+    position: absolute;
+    background-color: white;
+    padding: 10px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+    pointer-events: none;
 }
 </style>
 </html>
