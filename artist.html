@@ -158,11 +158,15 @@
                     var accordionContent = '';
                     if (value.cities) {
                         $.each(value.cities, function (index, city) {
-                            let longitude = city.coordinates ? city.coordinates.longitude : ""
-                            let latitude = city.coordinates ? city.coordinates.latitude : ""
+                            let longitude = city.coordinates ? city.coordinates.longitude : "";
+                            let latitude = city.coordinates ? city.coordinates.latitude : "";
+                            let artworks = city.city_holders.map(holder => {
+                                return { title: holder.title };
+                            });
                             cities_map_list.push({
                                 name: city.city_name,
-                                coordinates: [longitude, latitude]
+                                coordinates: [longitude, latitude],
+                                artworks: artworks
                             });
                             let toponimic = city.city_name + " " + city.city_spec;
                             number_of_cities++;
@@ -257,11 +261,13 @@
     cities_map_list.forEach(cityData => {
         const cityName = cityData.name;
         const coords = ol.proj.fromLonLat(cityData.coordinates);
+        const artworks = cityData.artworks;
 
         // Create a marker for each city.
         const marker = new ol.Feature({
             geometry: new ol.geom.Point(coords),
-            name: cityName
+            name: cityName,
+            artworks: artworks,
         });
 
         // Set a style for the marker.
@@ -299,19 +305,34 @@
     });
     map.addOverlay(popup);
 
-    // Add a click handler to show a popup on click.
     map.on('singleclick', function(event) {
         let featureFound = false;
         map.forEachFeatureAtPixel(event.pixel, function(feature) {
+            console.log(feature);
             const cityName = feature.get('name');
+            const artworksHTML = feature.get('artworks').map(art => {
+                return `
+                    <div>
+                        <div>${art.title}</div>
+                        ${art.imageUrl ? `<img src="${art.imageUrl}" alt="${art.title}">` : ''}
+                        ${art.holder ? `<p>Holder: ${art.holder}</p>` : ''}
+                        ${art.year ? `<p>Year: ${art.year}</p>` : ''}
+                        ${art.plate ? `<p>Plate: ${art.plate}</p>` : ''}
+                        ${art.inventory_number ? `<p>Identifier: ${art.inventory_number}</p>` : ''}
+                    </div>
+                `;
+            }).join('');
             popup.setPosition(event.coordinate);
-            document.getElementById('popup-content').innerHTML = cityName;
+            $('#popupCity').html(cityName);
+            $('#popupArtworks').html(artworksHTML);
             featureFound = true;
         });
         if (!featureFound) {
             popup.setPosition(undefined);
         }
     });
+
+
         // Add a pointermove handler to change cursor style.
     map.on('pointermove', function(event) {
         if (map.hasFeatureAtPixel(event.pixel)) {
@@ -328,7 +349,10 @@
   <!-- Include Bootstrap JS and Popper.js -->
   <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 <div id="popup" class="ol-popup">
-    <div id="popup-content"></div>
+    <div id="popup-content">
+      <div id="popupCity"></div>
+      <div id="popupArtworks"></div>
+    </div>
 </div>
 </body>
 <style>
@@ -345,6 +369,10 @@
     border: 1px solid #ccc;
     box-shadow: 0 1px 4px rgba(0,0,0,0.2);
     pointer-events: none;
+    width: 300px;
 }
+    #popupCity {
+      font-weight: bold;
+    }
 </style>
 </html>
